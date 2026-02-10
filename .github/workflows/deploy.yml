@@ -1,14 +1,13 @@
 name: Deploy Earth Copilot
 
 on:
-  # Disabled auto-trigger - use manual workflow_dispatch only
-  # push:
-  #   branches: [main]
-  #   paths:
-  #     - 'earth-copilot/infra/**'
-  #     - 'earth-copilot/container-app/**'
-  #     - 'earth-copilot/web-ui/**'
-  #     - '.github/workflows/deploy.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'earth-copilot/infra/**'
+      - 'earth-copilot/container-app/**'
+      - 'earth-copilot/web-ui/**'
+      - '.github/workflows/deploy.yml'
   workflow_dispatch:
     inputs:
       force_all:
@@ -128,7 +127,7 @@ jobs:
           
           DEPLOYMENT_NAME="earthcopilot-$(date +%Y%m%d-%H%M%S)"
           
-          echo "🚀 Deploying Infrastructure..."
+          echo "Deploying Infrastructure..."
           
           az deployment sub create \
             --location "${{ env.LOCATION }}" \
@@ -140,33 +139,33 @@ jobs:
             --name "$DEPLOYMENT_NAME" \
             --output none
           
-          echo "✅ Infrastructure deployed"
+          echo "Infrastructure deployed successfully"
 
       - name: Discover Resource Names
         id: discover
         run: |
-          echo "🔍 Discovering deployed resource names..."
+          echo "Discovering deployed resource names..."
           
           # Discover Container Registry
           ACR_NAME=$(az acr list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
           echo "container_registry_name=$ACR_NAME" >> $GITHUB_OUTPUT
-          echo "  ✅ Container Registry: $ACR_NAME"
+          echo "  Container Registry: $ACR_NAME"
           
           # Discover Container App
           CA_NAME=$(az containerapp list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
           echo "container_app_name=$CA_NAME" >> $GITHUB_OUTPUT
-          echo "  ✅ Container App: $CA_NAME"
+          echo "  Container App: $CA_NAME"
           
           # Discover Web App
           WA_NAME=$(az webapp list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
           echo "web_app_name=$WA_NAME" >> $GITHUB_OUTPUT
-          echo "  ✅ Web App: $WA_NAME"
+          echo "  Web App: $WA_NAME"
           
           # Get Container App URL
           if [ -n "$CA_NAME" ]; then
             CA_URL=$(az containerapp show --name "$CA_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "properties.configuration.ingress.fqdn" -o tsv)
             echo "container_app_url=https://$CA_URL" >> $GITHUB_OUTPUT
-            echo "  ✅ Container App URL: https://$CA_URL"
+            echo "  Container App URL: https://$CA_URL"
           fi
 
   # Deploy Backend (if backend files changed OR infra deployed)
@@ -195,37 +194,37 @@ jobs:
       - name: Discover Resource Names
         id: discover
         run: |
-          echo "🔍 Discovering resource names..."
+          echo "Discovering resource names..."
           
           # Discover Container Registry
           ACR_NAME=$(az acr list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
           if [ -z "$ACR_NAME" ]; then
-            echo "❌ No Container Registry found in ${{ env.RESOURCE_GROUP }}"
+            echo "ERROR: No Container Registry found in ${{ env.RESOURCE_GROUP }}"
             echo "   Run infrastructure deployment first!"
             exit 1
           fi
           echo "container_registry_name=$ACR_NAME" >> $GITHUB_OUTPUT
-          echo "  ✅ Container Registry: $ACR_NAME"
+          echo "  Container Registry: $ACR_NAME"
           
           # Discover Container App Environment
           CAE_NAME=$(az containerapp env list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
           if [ -z "$CAE_NAME" ]; then
-            echo "❌ No Container App Environment found in ${{ env.RESOURCE_GROUP }}"
+            echo "ERROR: No Container App Environment found in ${{ env.RESOURCE_GROUP }}"
             echo "   Run infrastructure deployment first!"
             exit 1
           fi
           echo "container_app_env_name=$CAE_NAME" >> $GITHUB_OUTPUT
-          echo "  ✅ Container App Environment: $CAE_NAME"
+          echo "  Container App Environment: $CAE_NAME"
           
           # Discover Container App (may not exist yet on first deploy)
           CA_NAME=$(az containerapp list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
           if [ -z "$CA_NAME" ]; then
-            echo "  ℹ️ No Container App found - will create one"
+            echo "  INFO: No Container App found - will create one"
             echo "container_app_exists=false" >> $GITHUB_OUTPUT
           else
             echo "container_app_name=$CA_NAME" >> $GITHUB_OUTPUT
             echo "container_app_exists=true" >> $GITHUB_OUTPUT
-            echo "  ✅ Container App: $CA_NAME"
+            echo "  Container App: $CA_NAME"
           fi
 
       - name: Build and Deploy Backend
@@ -251,7 +250,7 @@ jobs:
             --file Dockerfile.complete \
             ../
           
-          echo "✅ Image built: ${ACR_NAME}.azurecr.io/earthcopilot-api:$IMAGE_TAG"
+          echo "Image built: ${ACR_NAME}.azurecr.io/earthcopilot-api:$IMAGE_TAG"
           
           # Get ACR login server
           ACR_LOGIN_SERVER=$(az acr show \
@@ -261,10 +260,10 @@ jobs:
           
           if [ "$CA_EXISTS" == "true" ]; then
             # Update existing Container App
-            echo "📦 Updating existing Container App..."
+            echo "Updating existing Container App..."
             
             # Fetch current credentials to ensure env vars are up-to-date
-            echo "🔑 Fetching service credentials..."
+            echo "Fetching service credentials..."
             
             # Get AI Foundry/Azure OpenAI credentials (AIServices is the new kind for AI Foundry)
             AZURE_OPENAI_NAME=$(az cognitiveservices account list --resource-group ${{ env.RESOURCE_GROUP }} --query "[?kind=='AIServices' || kind=='OpenAI'].name | [0]" -o tsv)
@@ -283,8 +282,8 @@ jobs:
               fi
               # Get available model deployments
               AZURE_OPENAI_AVAILABLE_MODELS=$(az cognitiveservices account deployment list --name "$AZURE_OPENAI_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "[].name" -o tsv 2>/dev/null | tr '\n' ',' | sed 's/,$//')
-              echo "  ✅ Azure OpenAI: $AZURE_OPENAI_NAME"
-              echo "  ✅ Available Models: $AZURE_OPENAI_AVAILABLE_MODELS"
+              echo "  Azure OpenAI: $AZURE_OPENAI_NAME"
+              echo "  Available Models: $AZURE_OPENAI_AVAILABLE_MODELS"
             fi
             
             # Get Azure Maps subscription key
@@ -292,7 +291,7 @@ jobs:
             MAPS_ACCOUNT=$(az maps account list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
             if [ -n "$MAPS_ACCOUNT" ]; then
               AZURE_MAPS_KEY=$(az maps account keys list --name "$MAPS_ACCOUNT" --resource-group ${{ env.RESOURCE_GROUP }} --query "primaryKey" -o tsv)
-              echo "  ✅ Azure Maps: $MAPS_ACCOUNT"
+              echo "  Azure Maps: $MAPS_ACCOUNT"
             fi
             
             # Get Application Insights connection string (requires extension)
@@ -301,7 +300,7 @@ jobs:
             APPINSIGHTS_NAME=$(az monitor app-insights component list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv 2>/dev/null || echo "")
             if [ -n "$APPINSIGHTS_NAME" ]; then
               APPINSIGHTS_CS=$(az monitor app-insights component show --app "$APPINSIGHTS_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "connectionString" -o tsv 2>/dev/null || echo "")
-              echo "  ✅ Application Insights: $APPINSIGHTS_NAME"
+              echo "  Application Insights: $APPINSIGHTS_NAME"
             fi
             
             # Update container with image AND refreshed environment variables
@@ -323,17 +322,17 @@ jobs:
               --output none
             
             # Ensure ingress is configured with correct port
-            echo "🔧 Ensuring ingress port is correct (8080)..."
+            echo "Ensuring ingress port is correct (8080)..."
             az containerapp ingress update \
               --name "$CA_NAME" \
               --resource-group "${{ env.RESOURCE_GROUP }}" \
               --target-port 8080 \
               --output none
               
-            echo "✅ Container App updated with refreshed credentials"
+            echo "Container App updated with refreshed credentials"
           else
             # Create new Container App
-            echo "🆕 Creating new Container App..."
+            echo "Creating new Container App..."
             CA_NAME="ca-earthcopilot-api"
             
             # Get AI Foundry endpoint (AIServices is the new kind for AI Foundry)
@@ -347,18 +346,18 @@ jobs:
               # Check if local auth is disabled
               LOCAL_AUTH_DISABLED=$(az cognitiveservices account show --name "$AZURE_OPENAI_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "properties.disableLocalAuth" -o tsv)
               if [ "$LOCAL_AUTH_DISABLED" == "true" ]; then
-                echo "  ℹ️ Azure OpenAI has local auth disabled - will use managed identity"
+                echo "  INFO: Azure OpenAI has local auth disabled - will use managed identity"
                 USE_MANAGED_IDENTITY="true"
               else
                 AZURE_OPENAI_KEY=$(az cognitiveservices account keys list --name "$AZURE_OPENAI_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "key1" -o tsv 2>/dev/null || echo "")
               fi
               # Get available model deployments
               AZURE_OPENAI_AVAILABLE_MODELS=$(az cognitiveservices account deployment list --name "$AZURE_OPENAI_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "[].name" -o tsv 2>/dev/null | tr '\n' ',' | sed 's/,$//')
-              echo "  ✅ Found Azure OpenAI: $AZURE_OPENAI_NAME"
-              echo "  ✅ Available Models: $AZURE_OPENAI_AVAILABLE_MODELS"
+              echo "  Found Azure OpenAI: $AZURE_OPENAI_NAME"
+              echo "  Available Models: $AZURE_OPENAI_AVAILABLE_MODELS"
             else
               AZURE_OPENAI_ENDPOINT=""
-              echo "  ⚠️ No Azure OpenAI found - app will use fallback settings"
+              echo "  WARNING: No Azure OpenAI found - app will use fallback settings"
             fi
             
             # Get Application Insights connection string (requires extension)
@@ -366,7 +365,7 @@ jobs:
             APPINSIGHTS_NAME=$(az monitor app-insights component list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv 2>/dev/null || echo "")
             if [ -n "$APPINSIGHTS_NAME" ]; then
               APPINSIGHTS_CS=$(az monitor app-insights component show --app "$APPINSIGHTS_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "connectionString" -o tsv 2>/dev/null || echo "")
-              echo "  ✅ Found Application Insights: $APPINSIGHTS_NAME"
+              echo "  Found Application Insights: $APPINSIGHTS_NAME"
             else
               APPINSIGHTS_CS=""
             fi
@@ -376,17 +375,20 @@ jobs:
             MAPS_ACCOUNT=$(az maps account list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
             if [ -n "$MAPS_ACCOUNT" ]; then
               AZURE_MAPS_KEY=$(az maps account keys list --name "$MAPS_ACCOUNT" --resource-group ${{ env.RESOURCE_GROUP }} --query "primaryKey" -o tsv)
-              echo "  ✅ Found Azure Maps: $MAPS_ACCOUNT"
+              echo "  Found Azure Maps: $MAPS_ACCOUNT"
             else
-              echo "  ⚠️ No Azure Maps account found"
+              echo "  WARNING: No Azure Maps account found"
             fi
             
-            # Create Container App with managed identity
+            # STEP 1: Create Container App with a public placeholder image (no auth required)
+            # This avoids the chicken-and-egg problem where we need managed identity to pull
+            # from ACR, but managed identity doesn't exist until the app is created
+            echo "Creating Container App with placeholder image..."
             az containerapp create \
               --name "$CA_NAME" \
               --resource-group "${{ env.RESOURCE_GROUP }}" \
               --environment "$CAE_NAME" \
-              --image "${ACR_LOGIN_SERVER}/earthcopilot-api:${IMAGE_TAG}" \
+              --image "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest" \
               --target-port 8080 \
               --ingress external \
               --cpu 1.0 \
@@ -407,12 +409,15 @@ jobs:
                 "AZURE_MAPS_SUBSCRIPTION_KEY=${AZURE_MAPS_KEY}" \
               --output none
             
-            echo "✅ Container App created: $CA_NAME"
+            echo "Container App created with placeholder image: $CA_NAME"
             
-            # If using managed identity for Azure OpenAI, grant Cognitive Services User role
+            # STEP 2: Get the managed identity principal ID (now that app exists)
+            CA_IDENTITY=$(az containerapp show --name "$CA_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "identity.principalId" -o tsv)
+            echo "Managed Identity Principal ID: $CA_IDENTITY"
+            
+            # STEP 3: Configure Azure OpenAI access if using managed identity
             if [ "$USE_MANAGED_IDENTITY" == "true" ] && [ -n "$AZURE_OPENAI_NAME" ]; then
-              echo "🔐 Configuring managed identity for Azure OpenAI..."
-              CA_IDENTITY=$(az containerapp show --name "$CA_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "identity.principalId" -o tsv)
+              echo "Configuring managed identity for Azure OpenAI..."
               OPENAI_ID=$(az cognitiveservices account show --name "$AZURE_OPENAI_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "id" -o tsv)
               
               az role assignment create \
@@ -421,22 +426,27 @@ jobs:
                 --scope "$OPENAI_ID" \
                 --output none 2>/dev/null || true
               
-              echo "✅ Managed identity configured for Azure OpenAI"
+              echo "Managed identity configured for Azure OpenAI"
             fi
             
-            # Configure ACR pull with managed identity
-            echo "🔐 Configuring managed identity for ACR pull..."
-            CA_IDENTITY=$(az containerapp show --name "$CA_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "identity.principalId" -o tsv)
+            # STEP 4: Grant AcrPull role to the Container App's managed identity
+            echo "Configuring managed identity for ACR pull..."
             ACR_ID=$(az acr show --name "$ACR_NAME" --resource-group ${{ env.RESOURCE_GROUP }} --query "id" -o tsv)
             
-            # Grant AcrPull role to the Container App's managed identity
             az role assignment create \
               --assignee "$CA_IDENTITY" \
               --role "AcrPull" \
               --scope "$ACR_ID" \
               --output none 2>/dev/null || true
             
-            # Update Container App to use managed identity for registry
+            echo "AcrPull role assigned to managed identity"
+            
+            # STEP 5: Wait for role assignment to propagate (Azure RBAC can take up to 5 minutes)
+            echo "Waiting 90 seconds for role assignment propagation..."
+            sleep 90
+            
+            # STEP 6: Configure the registry to use managed identity
+            echo "Configuring Container App to use managed identity for ACR..."
             az containerapp registry set \
               --name "$CA_NAME" \
               --resource-group "${{ env.RESOURCE_GROUP }}" \
@@ -444,7 +454,57 @@ jobs:
               --identity system \
               --output none
             
-            echo "✅ Managed identity configured for ACR pull"
+            echo "Registry configured with managed identity"
+            
+            # STEP 7: Verify registry configuration before pulling
+            echo "Verifying registry authentication configuration..."
+            REGISTRY_CONFIG=$(az containerapp show \
+              --name "$CA_NAME" \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --query "properties.configuration.registries[?server=='${ACR_LOGIN_SERVER}'].identity" \
+              -o tsv)
+            
+            if [ "$REGISTRY_CONFIG" != "system" ]; then
+              echo "WARNING: Registry identity not set to 'system', retrying..."
+              sleep 30
+              az containerapp registry set \
+                --name "$CA_NAME" \
+                --resource-group "${{ env.RESOURCE_GROUP }}" \
+                --server "$ACR_LOGIN_SERVER" \
+                --identity system \
+                --output none
+            fi
+            echo "Registry authentication verified: using system-assigned managed identity"
+            
+            # STEP 8: Verify managed identity has AcrPull role
+            echo "Verifying AcrPull role assignment..."
+            ROLE_EXISTS=$(az role assignment list \
+              --assignee "$CA_IDENTITY" \
+              --role "AcrPull" \
+              --scope "$ACR_ID" \
+              --query "[0].id" -o tsv 2>/dev/null || echo "")
+            
+            if [ -z "$ROLE_EXISTS" ]; then
+              echo "WARNING: AcrPull role not found, waiting additional 60 seconds..."
+              sleep 60
+              # Retry role assignment
+              az role assignment create \
+                --assignee "$CA_IDENTITY" \
+                --role "AcrPull" \
+                --scope "$ACR_ID" \
+                --output none 2>/dev/null || true
+            fi
+            echo "AcrPull role verified for managed identity"
+            
+            # STEP 9: Now update the Container App with the actual image from ACR
+            echo "Updating Container App with actual image from ACR..."
+            az containerapp update \
+              --name "$CA_NAME" \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --image "${ACR_LOGIN_SERVER}/earthcopilot-api:${IMAGE_TAG}" \
+              --output none
+            
+            echo "Container App updated with image: ${ACR_LOGIN_SERVER}/earthcopilot-api:${IMAGE_TAG}"
           fi
           
           echo "container_app_name=$CA_NAME" >> $GITHUB_OUTPUT
@@ -456,7 +516,7 @@ jobs:
             --query "properties.configuration.ingress.fqdn" -o tsv)
           
           echo "container_app_url=https://$CONTAINER_APP_URL" >> $GITHUB_OUTPUT
-          echo "✅ Backend deployed to: https://$CONTAINER_APP_URL"
+          echo "Backend deployed to: https://$CONTAINER_APP_URL"
 
   # Deploy Frontend (if frontend files changed, runs after backend)
   deploy-frontend:
@@ -491,26 +551,26 @@ jobs:
       - name: Discover Resource Names
         id: discover
         run: |
-          echo "🔍 Discovering resource names..."
+          echo "Discovering resource names..."
           
           # Discover Container App
           CA_NAME=$(az containerapp list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
           if [ -z "$CA_NAME" ]; then
-            echo "❌ No Container App found in ${{ env.RESOURCE_GROUP }}"
+            echo "ERROR: No Container App found in ${{ env.RESOURCE_GROUP }}"
             exit 1
           fi
           echo "container_app_name=$CA_NAME" >> $GITHUB_OUTPUT
-          echo "  ✅ Container App: $CA_NAME"
+          echo "  Container App: $CA_NAME"
           
           # Discover or create Web App
           WA_NAME=$(az webapp list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
           if [ -z "$WA_NAME" ]; then
-            echo "  ℹ️ No Web App found - will create one"
+            echo "  INFO: No Web App found - will create one"
             echo "web_app_exists=false" >> $GITHUB_OUTPUT
             WA_NAME="app-earthcopilot-ui"
           else
             echo "web_app_exists=true" >> $GITHUB_OUTPUT
-            echo "  ✅ Web App: $WA_NAME"
+            echo "  Web App: $WA_NAME"
           fi
           echo "web_app_name=$WA_NAME" >> $GITHUB_OUTPUT
 
@@ -523,7 +583,7 @@ jobs:
             --resource-group ${{ env.RESOURCE_GROUP }} \
             --query "properties.configuration.ingress.fqdn" -o tsv)
           echo "backend_url=https://$CONTAINER_APP_URL" >> $GITHUB_OUTPUT
-          echo "  ✅ Backend URL: https://$CONTAINER_APP_URL"
+          echo "  Backend URL: https://$CONTAINER_APP_URL"
 
       - name: Get Azure Maps Key
         id: get-maps-key
@@ -539,23 +599,23 @@ jobs:
               --resource-group ${{ env.RESOURCE_GROUP }} \
               --query "primaryKey" -o tsv)
             echo "maps_key=$MAPS_KEY" >> $GITHUB_OUTPUT
-            echo "✅ Azure Maps key retrieved from: $MAPS_ACCOUNT"
+            echo "Azure Maps key retrieved from: $MAPS_ACCOUNT"
           else
-            echo "⚠️ No Azure Maps account found in ${{ env.RESOURCE_GROUP }}"
+            echo "WARNING: No Azure Maps account found in ${{ env.RESOURCE_GROUP }}"
             echo "maps_key=" >> $GITHUB_OUTPUT
           fi
 
       - name: Build and Deploy Frontend
         id: deploy
         run: |
-          echo "🎨 Building and deploying frontend..."
+          echo "Building and deploying frontend..."
           
           WA_NAME="${{ steps.discover.outputs.web_app_name }}"
           WA_EXISTS="${{ steps.discover.outputs.web_app_exists }}"
           
           # Create Web App if it doesn't exist
           if [ "$WA_EXISTS" != "true" ]; then
-            echo "🆕 Creating new Web App..."
+            echo "Creating new Web App..."
             
             # Create App Service Plan
             ASP_NAME="asp-earthcopilot"
@@ -567,7 +627,7 @@ jobs:
               --is-linux \
               --output none
             
-            echo "  ✅ Created App Service Plan: $ASP_NAME"
+            echo "  Created App Service Plan: $ASP_NAME"
             
             # Create Web App
             az webapp create \
@@ -577,7 +637,7 @@ jobs:
               --runtime "NODE:20-lts" \
               --output none
             
-            echo "  ✅ Created Web App: $WA_NAME"
+            echo "  Created Web App: $WA_NAME"
             
             # Configure Web App
             az webapp config appsettings set \
@@ -590,7 +650,7 @@ jobs:
                 PORT=8080 \
               --output none
             
-            echo "  ✅ Configured Web App settings"
+            echo "  Configured Web App settings"
           fi
           
           cd earth-copilot/web-ui
@@ -634,7 +694,7 @@ jobs:
             --query "defaultHostName" -o tsv)
           
           echo "web_app_url=https://$WEB_URL" >> $GITHUB_OUTPUT
-          echo "✅ Frontend deployed to: https://$WEB_URL"
+          echo "Frontend deployed to: https://$WEB_URL"
 
   # Summary
   summary:
@@ -651,10 +711,10 @@ jobs:
 
       - name: Generate Summary
         run: |
-          echo "# 🚀 Earth Copilot Deployment" >> $GITHUB_STEP_SUMMARY
+          echo "# Earth Copilot Deployment" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
-          echo "## 📊 Components Deployed" >> $GITHUB_STEP_SUMMARY
+          echo "## Components Deployed" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           echo "| Component | Changed | Status |" >> $GITHUB_STEP_SUMMARY
@@ -663,38 +723,38 @@ jobs:
           # Infrastructure
           if [ "${{ needs.detect-changes.outputs.infra }}" == "true" ]; then
             if [ "${{ needs.deploy-infrastructure.result }}" == "success" ]; then
-              echo "| Infrastructure | ✅ Yes | ✅ Deployed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Infrastructure | Yes | Deployed |" >> $GITHUB_STEP_SUMMARY
             else
-              echo "| Infrastructure | ✅ Yes | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Infrastructure | Yes | Failed |" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "| Infrastructure | ⏭️ No | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+            echo "| Infrastructure | No | Skipped |" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Backend
           if [ "${{ needs.detect-changes.outputs.backend }}" == "true" ] || [ "${{ needs.detect-changes.outputs.infra }}" == "true" ]; then
             if [ "${{ needs.deploy-backend.result }}" == "success" ]; then
-              echo "| Backend | ✅ Yes | ✅ Deployed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Backend | Yes | Deployed |" >> $GITHUB_STEP_SUMMARY
             else
-              echo "| Backend | ✅ Yes | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Backend | Yes | Failed |" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "| Backend | ⏭️ No | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+            echo "| Backend | No | Skipped |" >> $GITHUB_STEP_SUMMARY
           fi
           
           # Frontend
           if [ "${{ needs.detect-changes.outputs.frontend }}" == "true" ] || [ "${{ needs.detect-changes.outputs.infra }}" == "true" ]; then
             if [ "${{ needs.deploy-frontend.result }}" == "success" ]; then
-              echo "| Frontend | ✅ Yes | ✅ Deployed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Frontend | Yes | Deployed |" >> $GITHUB_STEP_SUMMARY
             else
-              echo "| Frontend | ✅ Yes | ❌ Failed |" >> $GITHUB_STEP_SUMMARY
+              echo "| Frontend | Yes | Failed |" >> $GITHUB_STEP_SUMMARY
             fi
           else
-            echo "| Frontend | ⏭️ No | ⏭️ Skipped |" >> $GITHUB_STEP_SUMMARY
+            echo "| Frontend | No | Skipped |" >> $GITHUB_STEP_SUMMARY
           fi
           
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "## 🌐 Endpoints" >> $GITHUB_STEP_SUMMARY
+          echo "## Endpoints" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           
           # Discover actual resource names and URLs
@@ -705,7 +765,7 @@ jobs:
             WEB_URL=$(az webapp show --resource-group ${{ env.RESOURCE_GROUP }} --name "$WA_NAME" --query "defaultHostName" -o tsv)
             echo "- **Frontend**: https://$WEB_URL" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Frontend**: ⚠️ Not deployed yet" >> $GITHUB_STEP_SUMMARY
+            echo "- **Frontend**: Not deployed yet" >> $GITHUB_STEP_SUMMARY
           fi
           
           if [ -n "$CA_NAME" ]; then
@@ -713,5 +773,5 @@ jobs:
             echo "- **Backend API**: https://$CA_URL" >> $GITHUB_STEP_SUMMARY
             echo "- **API Docs**: https://$CA_URL/docs" >> $GITHUB_STEP_SUMMARY
           else
-            echo "- **Backend**: ⚠️ Not deployed yet" >> $GITHUB_STEP_SUMMARY
+            echo "- **Backend**: Not deployed yet" >> $GITHUB_STEP_SUMMARY
           fi
