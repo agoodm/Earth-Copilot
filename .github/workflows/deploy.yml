@@ -498,6 +498,14 @@ jobs:
             
             # STEP 9: Now update the Container App with the actual image from ACR
             echo "Updating Container App with actual image from ACR..."
+
+            # Need to udpate port first for next command hangs
+            az containerapp update \
+              --name "$CA_NAME" \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --set configuration.ingress.targetPort=8080
+
+            # Now set new image
             az containerapp update \
               --name "$CA_NAME" \
               --resource-group "${{ env.RESOURCE_GROUP }}" \
@@ -623,7 +631,7 @@ jobs:
               --name "$ASP_NAME" \
               --resource-group "${{ env.RESOURCE_GROUP }}" \
               --location "${{ env.LOCATION }}" \
-              --sku B1 \
+              --sku B1sv2 \
               --is-linux \
               --output none
             
