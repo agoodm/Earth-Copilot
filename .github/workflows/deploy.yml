@@ -408,7 +408,12 @@ jobs:
                 "APPLICATION_INSIGHTS_CONNECTION_STRING=${APPINSIGHTS_CS}" \
                 "AZURE_MAPS_SUBSCRIPTION_KEY=${AZURE_MAPS_KEY}" \
               --output none
-            
+            az containerapp ingress update \
+              --name "$CA_NAME" \
+              --resource-group "${{ env.RESOURCE_GROUP }}" \
+              --target-port 8080 \
+              --output none
+
             echo "Container App created with placeholder image: $CA_NAME"
             
             # STEP 2: Get the managed identity principal ID (now that app exists)
@@ -498,14 +503,6 @@ jobs:
             
             # STEP 9: Now update the Container App with the actual image from ACR
             echo "Updating Container App with actual image from ACR..."
-
-            # Need to udpate port first for next command hangs
-            az containerapp update \
-              --name "$CA_NAME" \
-              --resource-group "${{ env.RESOURCE_GROUP }}" \
-              --set configuration.ingress.targetPort=8080
-
-            # Now set new image
             az containerapp update \
               --name "$CA_NAME" \
               --resource-group "${{ env.RESOURCE_GROUP }}" \
