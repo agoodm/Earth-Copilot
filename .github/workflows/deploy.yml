@@ -628,7 +628,7 @@ jobs:
               --name "$ASP_NAME" \
               --resource-group "${{ env.RESOURCE_GROUP }}" \
               --location "${{ env.LOCATION }}" \
-              --sku Bsv2 \
+              --sku D1 \
               --is-linux \
               --output none
             
