@@ -371,6 +371,7 @@ jobs:
                 --file Dockerfile.complete \
                 --timeout "$BUILD_TIMEOUT" \
                 --agent-pool "$AGENT_POOL" \
+                --build-arg ACR_NAME="$ACR_NAME" \
                 ../
             else
               echo "No agent pool found — using public build with temporary firewall open"
