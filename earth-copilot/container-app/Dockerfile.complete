@@ -5,7 +5,8 @@
 # =============================================================================
 # STAGE 1: Build React Frontend
 # =============================================================================
-FROM node:20-alpine AS frontend-build
+ARG ACR_NAME
+FROM ${ACR_NAME}.azurecr.io/library/node:20-alpine
 
 WORKDIR /frontend
 
