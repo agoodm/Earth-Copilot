@@ -820,7 +820,7 @@ jobs:
               --name "$WA_NAME" \
               --resource-group "${{ env.RESOURCE_GROUP }}" \
               --plan "$ASP_NAME" \
-              --runtime "NODE:20-lts" \
+              --runtime "node:20-lts" \
               --output none
             
             echo "  Created Web App: $WA_NAME"
