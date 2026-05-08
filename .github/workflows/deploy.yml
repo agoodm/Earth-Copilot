@@ -220,6 +220,28 @@ jobs:
           
           echo "Infrastructure deployed successfully"
 
+      - name: Mirror Base Images to ACR
+        run: |
+          echo "Mirroring base images to ACR..."
+          
+          ACR_NAME=$(az acr list --resource-group ${{ env.RESOURCE_GROUP }} --query "[0].name" -o tsv)
+          if [ -z "$ACR_NAME" ]; then
+            echo "ERROR: No Container Registry found"
+            exit 1
+          fi
+          
+          echo "ACR: $ACR_NAME"
+          
+          # Mirror node:20-alpine image
+          echo "Mirroring node:20-alpine..."
+          az acr import \
+            --name "$ACR_NAME" \
+            --source docker.io/library/node:20-alpine \
+            --image library/node:20-alpine \
+            --no-wait
+          
+          echo "Base images queued for mirroring (may take several minutes)"
+
       - name: Discover Resource Names
         id: discover
         run: |
